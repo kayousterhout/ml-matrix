@@ -223,7 +223,8 @@ object BlockCoordinateDescent {
     b.rdd.count
 
     var begin = System.nanoTime()
-    val xs = new BlockCoordinateDescent().solveLeastSquaresWithL2(aParts, b, Array(0.0), numPasses,
+    val lambdaValues = Array(1.0e-8, 1.0e-7, 1.0e-6, 1.0e-5, 1.0e-4, 1.0e-3)
+    val xs = new BlockCoordinateDescent().solveLeastSquaresWithL2(aParts, b, lambdaValues, numPasses,
       new NormalEquations()).map(x => x.head)
     var end = System.nanoTime()
 
