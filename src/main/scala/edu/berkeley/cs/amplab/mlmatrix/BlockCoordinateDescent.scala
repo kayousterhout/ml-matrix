@@ -90,7 +90,7 @@ class BlockCoordinateDescent extends Logging with Serializable {
         arr(l) = new DenseMatrix[Double](nrows, ncols)
       }
       arr
-    }.cache()
+    }.setName("Lambdas").cache()
 
     val xs = (0 until numColBlocks).map { colBlock =>
       (0 until lambdas.length).to[scala.collection.Seq].map { l =>
@@ -129,6 +129,7 @@ class BlockCoordinateDescent extends Logging with Serializable {
           //   ax
           // }
         }
+        blockResidual.setName("Block residual")
         blockResidual.cache()
         blockResidual.count
 
@@ -154,7 +155,7 @@ class BlockCoordinateDescent extends Logging with Serializable {
             i = i + 1
           }
           part._2
-        }.cache()
+        }.setName("Updated output").cache()
 
         if (checkpointIntermediate) {
           newOutput.checkpoint()
@@ -213,26 +214,31 @@ object BlockCoordinateDescent {
     // Sleep to give the executors a chance to come up.
     Thread.sleep(5000)
 
-    val aParts = (0 until numColBlocks).map { p =>
-      RowPartitionedMatrix.createRandom(
-        sc, rowsPerBlock * numRowBlocks, colsPerBlock, numRowBlocks, cache=true)
+    try {
+      val aParts = (0 until numColBlocks).map { p =>
+        val matrix = RowPartitionedMatrix.createRandom(
+          sc, rowsPerBlock * numRowBlocks, colsPerBlock, numRowBlocks, cache=true)
+        matrix.rdd.setName(s"Column block $p")
+        matrix
+      }
+
+      val b =  aParts(0).mapPartitions(
+        part => DenseMatrix.rand(part.rows, numClasses)).cache()
+      b.rdd.setName("Dense matrix")
+
+      // Create all RDDs
+      aParts.foreach { aPart => aPart.rdd.count }
+      b.rdd.count
+
+      var begin = System.nanoTime()
+      val lambdaValues = Array(1.0e-8, 1.0e-7, 1.0e-6, 1.0e-5, 1.0e-4, 1.0e-3)
+      val xs = new BlockCoordinateDescent().solveLeastSquaresWithL2(aParts, b, lambdaValues, numPasses,
+        new NormalEquations()).map(x => x.head)
+      var end = System.nanoTime()
+      println("BlockCoordinateDescent took " + (end-begin)/1e6 + " ms")
+    } finally {
+      sc.stop()
     }
-
-    val b =  aParts(0).mapPartitions(
-      part => DenseMatrix.rand(part.rows, numClasses)).cache()
-
-    // Create all RDDs
-    aParts.foreach { aPart => aPart.rdd.count }
-    b.rdd.count
-
-    var begin = System.nanoTime()
-    val lambdaValues = Array(1.0e-8, 1.0e-7, 1.0e-6, 1.0e-5, 1.0e-4, 1.0e-3)
-    val xs = new BlockCoordinateDescent().solveLeastSquaresWithL2(aParts, b, lambdaValues, numPasses,
-      new NormalEquations()).map(x => x.head)
-    var end = System.nanoTime()
-
-    sc.stop()
-    println("BlockCoordinateDescent took " + (end-begin)/1e6 + " ms")
   }
 
 }
