@@ -210,6 +210,9 @@ object BlockCoordinateDescent {
       .setJars(SparkContext.jarOfClass(this.getClass).toSeq)
     val sc = new SparkContext(conf)
 
+    // Sleep to give the executors a chance to come up.
+    Thread.sleep(5000)
+
     val aParts = (0 until numColBlocks).map { p =>
       RowPartitionedMatrix.createRandom(
         sc, rowsPerBlock * numRowBlocks, colsPerBlock, numRowBlocks, cache=true)
