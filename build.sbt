@@ -24,21 +24,21 @@ parallelExecution in Test := false
     "org.slf4j" % "slf4j-api" % "1.7.2",
     "org.slf4j" % "slf4j-log4j12" % "1.7.2",
     "org.scalatest" %% "scalatest" % "1.9.1" % "test",
-    "org.apache.spark" % "spark-core_2.10" % sparkVersion excludeAll(excludeHadoop),
-    "org.apache.spark" % "spark-mllib_2.10" % sparkVersion excludeAll(excludeHadoop),
+    "org.apache.spark" % "spark-core_2.10" % defaultSparkVersion % "provided",
+    "org.apache.spark" % "spark-mllib_2.10" % defaultSparkVersion % "provided",
     "commons-io" % "commons-io" % "2.4",
-    "org.scalanlp" % "breeze_2.10" % "0.9",
+    "org.scalanlp" % "breeze_2.10" % "0.11.2",
     "com.github.fommil.netlib" % "all" % "1.1.2",
     "org.jblas" % "jblas" % "1.2.3"
   )
 }
 
 {
-  val defaultHadoopVersion = "1.0.4"
+  val defaultHadoopVersion = "2.0.0-mr1-cdh4.2.0"
   val hadoopVersion =
     scala.util.Properties.envOrElse("SPARK_HADOOP_VERSION", defaultHadoopVersion)
-  libraryDependencies += "org.apache.hadoop" % "hadoop-client" % hadoopVersion
-}
+  libraryDependencies += "org.apache.hadoop" % "hadoop-client" % hadoopVersion % "provided"
+;}
 
 resolvers ++= Seq(
   "Local Maven Repository" at Path.userHome.asFile.toURI.toURL + ".m2/repository",
