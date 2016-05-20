@@ -215,9 +215,20 @@ object BlockCoordinateDescent {
     Thread.sleep(5000)
 
     try {
+      // Create a (small) dummy RDD with the same number of partitions as all of the other RDDs. This
+      // RDD will be used as a dependency when creating all of the other RDDs, as a hack to make sure
+      // that all of the RDDs get partitioned in the same way (e.g., so partition 10 of column block
+      // 1 will end up on the same machine as partition 10 of column block 2).
+      val partitioningRdd = sc.parallelize(1 to numRowBlocks, numRowBlocks).setName("Partitioner")
+      partitioningRdd.cache()
       val aParts = (0 until numColBlocks).map { p =>
         val matrix = RowPartitionedMatrix.createRandom(
-          sc, rowsPerBlock * numRowBlocks, colsPerBlock, numRowBlocks, cache=true)
+          sc,
+          rowsPerBlock * numRowBlocks,
+          colsPerBlock,
+          numRowBlocks,
+          partitioningRdd=Some(partitioningRdd),
+          cache=true)
         matrix.rdd.setName(s"Column block $p")
         matrix
       }

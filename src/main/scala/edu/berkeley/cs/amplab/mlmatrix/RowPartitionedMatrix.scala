@@ -351,9 +351,11 @@ object RowPartitionedMatrix {
       numRows: Int,
       numCols: Int,
       numParts: Int,
+      partitioningRdd: Option[RDD[_]] = None,
       cache: Boolean = true): RowPartitionedMatrix = {
     val rowsPerPart = numRows / numParts
-    val matrixParts = sc.parallelize(1 to numParts, numParts).mapPartitions { part =>
+    val baseRdd = partitioningRdd.getOrElse(sc.parallelize(1 to numParts, numParts))
+    val matrixParts = baseRdd.mapPartitions { part =>
       val data = new Array[Double](rowsPerPart * numCols)
       var i = 0
       while (i < rowsPerPart*numCols) {
